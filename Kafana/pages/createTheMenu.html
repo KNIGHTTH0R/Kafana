@@ -1,0 +1,332 @@
+<h1 style="text-align: center;">The Menu</h1>
+<br><br>
+<div class="wrap d-flex justify-content-center">
+    <div class="w-75">
+
+        <h2>Create new item</h2>
+        <span class="font-weight-bold">Item <span class="text-danger">*</span></span>
+        <input id="newItemInput" class="w-75" type="text" placeholder="Item">
+
+        <br><br>
+        <span class="font-weight-bold">Price <span class="text-danger">*</span></span>
+        <input id="newPriceInput" class="w-75" type="number" placeholder="Price">
+
+        <br><br>
+        <span class="font-weight-bold">Type <span class="text-danger">*</span></span>
+        <select id="newTypeInput" class="w-25 text-danger" value="appetizers">
+            <option value="appetizers">Appetizers</option>
+            <option value="main course">Main course</option>
+            <option value="desserts">Desserts</option>
+            <option value="drinks">Drinks</option>
+        </select>
+        <div class="d-flex justify-content-center">
+            <div id="newItemSubmitBtn" class="btn btn-primary">Submit</div>
+        </div>
+
+    </div>
+</div>
+<!-- The Modal -->
+<div id="editMenuModal" class="modal">
+    <!-- Modal content -->
+    <div class="d-flex justify-content-center">
+        <div class="modal-content w-75">
+
+            <span id="editMenuCloseBtn" class="close">&#128281; If you don't want to edit press here</span>
+            <br><br><br><br>
+            <span class="font-weight-bold">Item <span class="text-danger">*</span></span>
+            <input id="editMenuItemInput" class="w-75" type="text" placeholder="Item">
+
+            <br><br>
+            <span class="font-weight-bold">Price <span class="text-danger">*</span></span>
+            <input id="editMenuPriceInput" class="w-75" type="number" placeholder="Price">
+
+            <br><br>
+            <span class="font-weight-bold">Type <span class="text-danger">*</span></span>
+            <select id="editMenuTypeInput" class="w-25 text-danger" value="appetizers">
+                <option value="appetizers">Appetizers</option>
+                <option value="main course">Main course</option>
+                <option value="desserts">Desserts</option>
+                <option value="drinks">Drinks</option>
+            </select>
+            <div class="d-flex justify-content-center">
+                <div id="editMenuSubmitBtn" class="btn btn-primary">Submit</div>
+            </div>
+
+
+        </div>
+    </div>
+
+
+</div>
+<br><br>
+<table class="table table-striped table-hover table-dark">
+    <thead>
+        <tr class="bg-primary">
+            <th>Id</th>
+            <th>Item</th>
+            <th>Price</th>
+            <th>Type</th>
+            <th>Edit</th>
+            <th>Delete</th>
+        </tr>
+    </thead>
+    <tbody id="bodyMenuTable">
+
+    </tbody>
+</table>
+
+<script>
+
+    var bodyMenuTable = document.getElementById("bodyMenuTable");
+
+    var newItemInput = document.getElementById("newItemInput");
+    var newPriceInput = document.getElementById("newPriceInput");
+    var newTypeInput = document.getElementById("newTypeInput");
+    var newItemSubmitBtn = document.getElementById("newItemSubmitBtn");
+
+    var editMenuModal = document.getElementById("editMenuModal")
+    var editMenuCloseBtn = document.getElementById("editMenuCloseBtn");
+    var editMenuItemInput = document.getElementById("editMenuItemInput");
+    var editMenuPriceInput = document.getElementById("editMenuPriceInput");
+    var editMenuTypeInput = document.getElementById("editMenuTypeInput");
+    var editMenuSubmitBtn = document.getElementById("editMenuSubmitBtn");
+
+
+
+    // Restricts input for the given textbox to the given inputFilter function.
+    function setInputFilter(textbox, inputFilter) {
+        ["input", "keydown", "keyup", "mousedown", "mouseup", "select", "contextmenu", "drop"].forEach(function (event) {
+            textbox.addEventListener(event, function () {
+                if (inputFilter(this.value)) {
+                    this.oldValue = this.value;
+                    this.oldSelectionStart = this.selectionStart;
+                    this.oldSelectionEnd = this.selectionEnd;
+                } else if (this.hasOwnProperty("oldValue")) {
+                    this.value = this.oldValue;
+                    this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+                } else {
+                    this.value = "";
+                }
+            });
+        });
+    }
+    setInputFilter(document.getElementById("newPriceInput"), function (value) {
+        return /^\d*\.?\d*$/.test(value); // Allow digits and '.' only, using a RegExp
+    });
+    setInputFilter(document.getElementById("editMenuPriceInput"), function (value) {
+        return /^\d*\.?\d*$/.test(value); // Allow digits and '.' only, using a RegExp
+    });
+
+    var createNewItemInMenu = {
+        init(newItemSubmitBtn, newItemInput, newPriceInput, newTypeInput) {
+            var t = this;
+            firebase.database().ref("menu").on("value", function (data) {
+                //ovdeka sve izvrsvi
+                var theData = data.val();
+                t.createClickonSubmitBtn(newItemSubmitBtn, newItemInput, newPriceInput, newTypeInput, theData)
+            }, function (err) {
+                console.log(err)
+            })
+        },
+        createClickonSubmitBtn(newItemSubmitBtn, newItemInput, newPriceInput, newTypeInput, theData) {
+            var t = this
+            var boolZapisano = true;
+
+            newItemSubmitBtn.onclick = function () {
+                if (!t.checkIfTheNewInputsEmpty(newItemInput, newPriceInput)) {
+                    alert("all fields are required!")
+                } else if (newPriceInput.value == "") {
+                    alert("the new price is not a number, plese enter number");
+                    newPriceInput.focus();
+                } else {
+                    var newId = t.findUniqueIdForItem(theData)
+                    
+                    firebase.database().ref(`menu/${newId}`).set({
+                        item: newItemInput.value,
+                        price: newPriceInput.value,
+                        type: newTypeInput.value,
+
+                    }).catch(function (err) {
+                        console.log(err);
+                        boolZapisano = false;
+                    });
+                    if (!boolZapisano) {
+                        alert("Neuspesno kreiranje nov item")
+                    } else {
+                        alert("Uspesno kreiranje nov item")
+                    }
+                    newItemInput.value = ""
+                    newPriceInput.value = ""
+                }
+            }
+        },
+        findUniqueIdForItem(theData) {
+            var uniqueId = 0
+            var idsArr = [];
+            for (var prop in theData) {
+                idsArr.push(parseInt(prop))
+            }
+            var sortedIds = idsArr.sort();
+            for (let i = 0; i < sortedIds.length; i++) {
+                if (uniqueId == sortedIds[i]) {
+                    uniqueId++
+                }
+            }
+            return uniqueId
+
+        },
+        checkIfTheNewInputsEmpty(newItemInput, newPriceInput) {
+            if (!newItemInput.value || !newPriceInput) {
+                return false
+            }
+            return true
+        }
+    }
+
+    var createTheMenuObj = {
+        init(bodyMenuTable, editMenuModal, editMenuCloseBtn, editMenuItemInput, editMenuPriceInput, editMenuTypeInput, editMenuSubmitBtn) {
+            var t = this;
+            firebase.database().ref("menu").on("value", function (data) {
+                //ovdeka sve izvrsvi
+                var theData = data.val();
+                t.fillTheTableWithData(theData, bodyMenuTable)
+                t.addEventClickDelete()
+                t.addEventClickEdit(editMenuModal, theData, editMenuItemInput, editMenuPriceInput, editMenuTypeInput)
+                t.onClickeditMenuCloseBtn(editMenuModal, editMenuCloseBtn)
+                t.editMenuSubmitBtnOnCLick(editMenuSubmitBtn,editMenuItemInput,editMenuPriceInput,editMenuTypeInput,editMenuModal)
+
+            }, function (err) {
+                console.log(err)
+            })
+        },
+        editMenuSubmitBtnOnCLick(editMenuSubmitBtn,editMenuItemInput,editMenuPriceInput,editMenuTypeInput,editMenuModal) {
+            var boolZapisano = true;
+            var t = this
+            editMenuSubmitBtn.onclick = function () {
+                if (!t.checkifTheEditMenuInputsEmpty(editMenuItemInput,editMenuPriceInput)) {
+                    alert("all fields are required!")
+                }else if (editMenuPriceInput.value == "") {
+                    alert("the new price is not a number, plese enter number");
+                    editMenuPriceInput.focus();
+                }else{
+                    var TheItemId = editMenuModal.getAttribute("iditemeditmodal");
+                    firebase.database().ref(`menu/${TheItemId}`).set({
+                        item: editMenuItemInput.value,
+                        price: editMenuPriceInput.value,
+                        type: editMenuTypeInput.value
+                    }).catch(function (err) {
+                        console.log(err);
+                        boolZapisano = false;
+                    });
+                    if (!boolZapisano) {
+                        alert(`Neuspesno e zapisuvanjeto na izmenite na item so id ${TheItemId} obidete se povtorno`)
+                    } else {
+                        alert(`Uspesno e zapisuvanjeto na izmenite na item so id ${TheItemId}`)
+                        editMenuModal.style.display = "none";
+                    }
+                }
+            }
+        },
+        checkifTheEditMenuInputsEmpty(editMenuItemInput,editMenuPriceInput){
+            if (!editMenuItemInput.value || !editMenuPriceInput) {
+                return false
+            }
+            return true
+        },
+        onClickeditMenuCloseBtn(editMenuModal, editMenuCloseBtn) {
+            editMenuCloseBtn.onclick = function () {
+                editMenuModal.style.display = "none";
+            }
+        },
+        createTh(input) {
+            var th = document.createElement("th");
+            th.innerHTML = input;
+            return th
+        },
+        createDeleteBtn(IdOfItemDel) {
+            var delBtn = document.createElement("button");
+            delBtn.setAttribute("idofitemdel", `${IdOfItemDel}`)
+            delBtn.innerHTML = "Delete"
+            var th = document.createElement("th");
+            th.appendChild(delBtn)
+            return th
+        },
+        createEditBtn(IdOfItemEdit) {
+            var editBtn = document.createElement("button");
+            editBtn.setAttribute("idofitemedit", `${IdOfItemEdit}`)
+            editBtn.innerHTML = "Edit"
+            var th = document.createElement("th");
+            th.appendChild(editBtn);
+            return th
+        },
+        createTr(UserInfo, Thekey) {
+            var IdOfItem = Thekey
+            var Tr = document.createElement("tr")
+            Tr.appendChild(this.createTh(IdOfItem))
+            for (var key in UserInfo) {
+                Tr.appendChild(this.createTh(UserInfo[key]))
+            }
+            Tr.appendChild(this.createEditBtn(IdOfItem))
+            Tr.appendChild(this.createDeleteBtn(IdOfItem))
+
+            return Tr.innerHTML;
+        },
+        fillTheTableWithData(theData, bodyMenuTable) {
+            bodyMenuTable.innerHTML = ""
+            for (var key in theData) {
+                bodyMenuTable.innerHTML += this.createTr(theData[key], key)
+            }
+        },
+        addEventClickDelete() {
+            var selectAllDeleteBtn = $('button[idofitemdel]')
+            var t = this
+            for (var i = 0; i < selectAllDeleteBtn.length; i++) {
+                let getUniqueId = selectAllDeleteBtn[i].getAttribute("idofitemdel")
+                selectAllDeleteBtn[i].addEventListener("click", function () {
+                    
+                    t.deleteChosenItem(getUniqueId)
+                })
+            }
+        },
+        addEventClickEdit(editMenuModal, theData, editMenuItemInput, editMenuPriceInput, editMenuTypeInput) {
+            var selectAllEditBtn = $('button[idofitemedit]')
+            var t = this
+            for (var i = 0; i < selectAllEditBtn.length; i++) {
+                let getUniqueId = selectAllEditBtn[i].getAttribute("idofitemedit")
+                selectAllEditBtn[i].addEventListener("click", function () {
+                    t.openEditMenuModal(editMenuModal, getUniqueId)
+                    t.fillEditInputsForChosenItem(editMenuModal, theData, editMenuItemInput, editMenuPriceInput, editMenuTypeInput)
+                })
+            }
+        },
+        openEditMenuModal(editMenuModal, getUniqueId) {
+            editMenuModal.style.display = "block"
+            editMenuModal.setAttribute("iditemeditmodal", `${getUniqueId}`)
+        },
+        fillEditInputsForChosenItem(editMenuModal, theData, editMenuItemInput, editMenuPriceInput, editMenuTypeInput) {
+            var chosenItemId = editMenuModal.getAttribute("iditemeditmodal");
+            for (var key in theData) {
+                if (key == chosenItemId) {
+                    editMenuItemInput.value = theData[key].item;
+                    editMenuPriceInput.value = theData[key].price;
+                    editMenuTypeInput.value = theData[key].type;
+                }
+            }
+
+        },
+        deleteChosenItem(getUniqueId) {
+            firebase.database().ref(`menu/${getUniqueId}`).remove()
+                .then(function () {
+                    alert(`You successfully removed the item in the menu with id ${getUniqueId}`)
+                })
+                .catch(function (error) {
+                    console.log("Remove failed! Try Again :D")
+                });
+        }
+    }
+
+    createTheMenuObj.init(bodyMenuTable, editMenuModal, editMenuCloseBtn, editMenuItemInput, editMenuPriceInput, editMenuTypeInput, editMenuSubmitBtn);
+
+
+    createNewItemInMenu.init(newItemSubmitBtn, newItemInput, newPriceInput, newTypeInput);
+</script>

@@ -1,0 +1,450 @@
+<h1>Create new order</h1>
+<br><br>
+<h3>First choose table <span class="text-danger">*</span></h3>
+
+<div id="tables" class="btn" data-toggle="buttons-radio">
+    <input id="createNewTableInput" type="text" placeholder="write number of the new table">
+    <button id="createNewTableBtn" style="margin: 3px;" class="btn btn-large btn-primary" data-toggle="tables">create
+        new table</button>
+    <br><br>
+    <div id="showAllTables">
+    </div>
+
+</div>
+<br><br>
+<h3>Preview of the order for table <span id="showChosenTable" class="text-danger"></span></h3>
+
+<table class="table table-striped table-hover table-dark">
+    <thead>
+        <tr class="bg-primary">
+            <th>Id</th>
+            <th>Item</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Type</th>
+            <th>Change Qty.</th>
+            <th>Remove item</th>
+        </tr>
+    </thead>
+    <tbody id="bodyPreviewOrdersTable">
+
+    </tbody>
+</table>
+<div class="d-flex justify-content-center">
+    <button id="submitTheOrder" class="btn btn-large btn-danger" chosentableid="" newtable=false>Submit the
+        order</button>
+</div>
+<br><br>
+<h3>Select items from the menu</h3>
+<table class="table table-striped table-hover table-dark">
+    <thead>
+        <tr class="bg-primary">
+            <th>Id</th>
+            <th>Item</th>
+            <th>Price</th>
+            <th>Type</th>
+            <th>Add</th>
+        </tr>
+    </thead>
+    <tbody id="bodySelectFromMenuTable">
+
+    </tbody>
+</table>
+
+<script>
+    var bodySelectFromMenuTable = document.getElementById("bodySelectFromMenuTable")
+    var bodyPreviewOrdersTable = document.getElementById("bodyPreviewOrdersTable")
+    var showAllTables = document.getElementById("showAllTables")
+    var submitTheOrder = document.getElementById("submitTheOrder")
+    var showChosenTable = document.getElementById("showChosenTable")
+    var createNewTableInput = document.getElementById("createNewTableInput")
+    var createNewTableBtn = document.getElementById("createNewTableBtn")
+
+    // Restricts input for the given textbox to the given inputFilter function.
+    function setInputFilter(textbox, inputFilter) {
+        ["input", "keydown", "keyup", "mousedown", "mouseup", "select", "contextmenu", "drop"].forEach(function (event) {
+            textbox.addEventListener(event, function () {
+                if (inputFilter(this.value)) {
+                    this.oldValue = this.value;
+                    this.oldSelectionStart = this.selectionStart;
+                    this.oldSelectionEnd = this.selectionEnd;
+                } else if (this.hasOwnProperty("oldValue")) {
+                    this.value = this.oldValue;
+                    this.setSelectionRange(this.oldSelectionStart, this.oldSelectionEnd);
+                } else {
+                    this.value = "";
+                }
+            });
+        });
+    }
+    setInputFilter(document.getElementById("createNewTableInput"), function (value) {
+        return /^\d*\.?\d*$/.test(value); // Allow digits and '.' only, using a RegExp
+    });
+
+    var createNewOrder = {
+        previewObj: [],
+        init(bodySelectFromMenuTable, bodyPreviewOrdersTable, showAllTables, createNewTableBtn, createNewTableInput, submitTheOrder, showChosenTable) {
+            var t = this;
+            var theDataMenu;
+            var theDataTables;
+
+            firebase.database().ref("tables").on("value", function (data) {
+                //ovdeka sve izvrsvi
+                theDataTables = data.val();
+                
+            }, function (err) {
+                console.log(err)
+            })
+
+            firebase.database().ref("menu").on("value", function (data) {
+                //ovdeka sve izvrsvi
+                theDataMenu = data.val();
+                t.fillTheTableSelectFromMenu(theDataMenu, bodySelectFromMenuTable)
+                t.AddBtnOnClick(theDataMenu, bodyPreviewOrdersTable)
+                t.fillTheShowAllTables(theDataTables, showAllTables)
+                t.SelectTableOnClick(submitTheOrder, showChosenTable)
+                t.submitTheOrderBtnOnClick(submitTheOrder, theDataTables)
+                t.createNewTableBtnOnClick(createNewTableBtn, createNewTableInput, submitTheOrder, showChosenTable, theDataTables)
+                
+            }, function (err) {
+                console.log(err)
+            })
+        },
+        submitTheOrderBtnOnClick(submitTheOrder, theDataTables) {
+            var t = this
+            submitTheOrder.onclick = function () {
+                t.submitTheOrderBtnChecker(submitTheOrder, theDataTables)
+            }
+        },
+        submitTheOrderBtnChecker(submitTheOrder, theDataTables) {
+            var t = this
+            var checkNewTab = submitTheOrder.getAttribute("newtable")
+            
+            var whichTable = submitTheOrder.getAttribute("chosentableid")
+            if (!whichTable) {
+                alert("Please first chose table!")
+            } else if (t.previewObj.length == 0) {
+                alert("Your order is empty")
+            } else if (checkNewTab == "true") {
+                t.submitNewTable(submitTheOrder)
+            } else {
+                t.submitExistingTable(theDataTables, whichTable)
+            }
+        },
+        submitExistingTable(theDataTables, whichTable) {
+            var t = this
+            var boolZapisano = true
+            var IdsAlredyExistingTables = []
+            var IdsNewItemsToTable = []
+
+            for (var keyTables in theDataTables) {
+                if (keyTables == whichTable) {
+                    for (var keyPrevObj in t.previewObj) {
+                        var IntPrevObjIdItem = parseInt(t.previewObj[keyPrevObj].id)
+                        for (var i in theDataTables[keyTables].items) {
+                            if (IntPrevObjIdItem == i && theDataTables[keyTables].items[i] != undefined) {
+                                IdsAlredyExistingTables.push(IntPrevObjIdItem)
+                                var newVal = (parseInt(t.previewObj[keyPrevObj].quantity)) + (parseInt(theDataTables[keyTables].items[i]))
+                                firebase.database().ref(`tables/${whichTable}/items/${i}`).set(newVal).catch(function (err) {
+                                    console.log(err);
+                                    boolZapisano = false;
+                                });
+                                
+                            }
+                            if (IntPrevObjIdItem != i) {
+                                IdsNewItemsToTable.push(IntPrevObjIdItem)
+                            }
+
+                        }
+                        // for (var i = 0; i < (theDataTables[keyTables].items).length; i++) {
+                        //     console.log(typeof theDataTables[keyTables].items[i])
+                        //     var negator = true
+                        //     if (IntPrevObjIdItem == i && theDataTables[keyTables].items[i] != undefined) {
+                        //         IdsAlredyExistingTables.push(IntPrevObjIdItem)
+                        //         var newVal = (parseInt(t.previewObj[keyPrevObj].quantity)) + (parseInt(theDataTables[keyTables].items[i]))
+                        //         firebase.database().ref(`tables/${whichTable}/items/${i}`).set(newVal).catch(function (err) {
+                        //             console.log(err);
+                        //             boolZapisano = false;
+                        //         });
+                        //         console.log("GO IMAT")
+                        //     }
+                        //     if (IntPrevObjIdItem != i) {
+                        //         console.log("GO NEMAT")
+                        //         IdsNewItemsToTable.push(IntPrevObjIdItem)
+                        //     }
+
+                        // }
+                    }
+                }
+            }
+            
+
+            var tempArr = [];
+            $.each(IdsNewItemsToTable, function (i, el) {
+                if ($.inArray(el, tempArr) === -1) tempArr.push(el);
+            });
+
+            tempArr = tempArr.filter(function (val) {
+                return IdsAlredyExistingTables.indexOf(val) == -1;
+            });
+
+            
+            //Gi stava onie items so ne bile na masata kako novi items na taa masa
+            for (var x = 0; x < tempArr.length; x++) {
+                for (var p in t.previewObj) {
+                    if (t.previewObj[p].id == tempArr[x]) {
+                        firebase.database().ref(`tables/${whichTable}/items/${tempArr[x]}`).set(t.previewObj[p].quantity).catch(function (err) {
+                            console.log(err);
+                            boolZapisano = false;
+                        });
+                    }
+                }
+
+            }
+
+            if (!boolZapisano) {
+                alert(`Neuspesno e zapisuvanjeto na narackata na masa so id ${whichTable}, proverete ja !!!`)
+            } else {
+                alert(`Uspesno e zapisuvanjeto na narackata na masa so id ${whichTable}`)
+            }
+            t.previewObj = [];
+            location.reload();
+        },
+        submitNewTable(submitTheOrder) {
+            var t = this
+            var arrObj = {}
+            var boolZapisano = true
+            for (var key in t.previewObj) {
+                arrObj[t.previewObj[key].id] = t.previewObj[key].quantity
+            }
+            
+
+            var TheItemId = submitTheOrder.getAttribute("chosentableid");
+            var userEmail = JSON.parse(localStorage.getItem("User"))
+            firebase.database().ref(`tables/${TheItemId}`).set({
+                waiterEmail: userEmail.Email,
+                items: arrObj
+            }).catch(function (err) {
+                console.log(err);
+                boolZapisano = false;
+            });
+            if (!boolZapisano) {
+                alert(`Neuspesno e zapisuvanjeto na narackata na masa so id ${TheItemId} obidete se povtorno`)
+            } else {
+                alert(`Uspesno e zapisuvanjeto na narackata na masa so id ${TheItemId}`)
+                t.previewObj = [];
+                location.reload();
+
+            }
+        },
+        createNewTableBtnOnClick(createNewTableBtn, createNewTableInput, submitTheOrder, showChosenTable, theDataTables) {
+            createNewTableBtn.onclick = function () {
+                var checker = true
+                for (var key in theDataTables) {
+                    if (key == createNewTableInput.value) {
+                        checker = false
+                    }
+                }
+                if (!checker || createNewTableInput.value == "") {
+                    alert("there another table with same name or your input is empty / your input is not a number")
+                    createNewTableInput.focus()
+                } else {
+                    submitTheOrder.setAttribute("chosentableid", `${createNewTableInput.value}`)
+                    showChosenTable.innerHTML = createNewTableInput.value
+                    submitTheOrder.setAttribute("newtable", true)
+                }
+
+                createNewTableInput.value = ""
+            }
+
+        },
+        fillTheShowAllTables(theDataTables, showAllTables) {
+            showAllTables.innerHTML = ""
+            var userFromLocalSt = JSON.parse(localStorage.getItem("User"))
+            for (var key in theDataTables) {
+                if(theDataTables[key].waiterEmail == userFromLocalSt.Email){
+                    showAllTables.appendChild(this.createButtonSelectTable(key))
+                }
+                
+            }
+        },
+        SelectTableOnClick(submitTheOrder, showChosenTable) {
+            var selectAllSelectTableBtn = $('button[idtable]')
+            var t = this
+            for (var i = 0; i < selectAllSelectTableBtn.length; i++) {
+                let getUniqueId = selectAllSelectTableBtn[i].getAttribute("idtable")
+                selectAllSelectTableBtn[i].addEventListener("click", function () {
+                    submitTheOrder.setAttribute("chosentableid", `${getUniqueId}`)
+                    submitTheOrder.setAttribute("newtable", false)
+                    showChosenTable.innerHTML = getUniqueId
+                })
+            }
+        },
+        createButtonSelectTable(idTable) {
+            var btn = document.createElement("button")
+            btn.style.margin = "3px";
+            btn.innerHTML = idTable
+            btn.setAttribute("class", "btn btn-large btn-primary");
+            btn.setAttribute("data-toggle", "tables")
+            btn.setAttribute("idtable", idTable)
+            return btn
+        },
+        createTh(input) {
+            var th = document.createElement("th");
+            th.innerHTML = input;
+            return th
+        },
+        createAddButtonSelectFromMenu(key) {
+            var theAddBtn = document.createElement("button")
+            theAddBtn.innerHTML = "Add"
+            theAddBtn.setAttribute("addbtnuqiditem", `${key}`)
+            theAddBtn.setAttribute("class", "btn btn-danger")
+            var th = document.createElement("th");
+            th.appendChild(theAddBtn)
+            return th
+        },
+        AddBtnOnClick(theDataMenu, bodyPreviewOrdersTable) {
+            var selectAllAddBtn = $('button[addbtnuqiditem]')
+            var t = this
+            for (var i = 0; i < selectAllAddBtn.length; i++) {
+                let getUniqueId = selectAllAddBtn[i].getAttribute("addbtnuqiditem")
+                selectAllAddBtn[i].addEventListener("click", function () {
+                    t.addItemToPreviewObj(theDataMenu, getUniqueId)
+                    t.bodyPreviewOrdersTableFill(bodyPreviewOrdersTable)
+
+                    
+                })
+            }
+        },
+        bodyPreviewOrdersTableFill(bodyPreviewOrdersTable) {
+            bodyPreviewOrdersTable.innerHTML = ""
+            for (var key in this.previewObj) {
+                bodyPreviewOrdersTable.innerHTML += this.createTrItemPreviewOrdersTable(this.previewObj[key])
+                this.changeBtnOnClick()
+                this.removeItemBtnOnClick()
+            }
+        },
+        createTrItemPreviewOrdersTable(theDataPreviewOrdersItem) {
+            var Tr = document.createElement("tr")
+
+            if (theDataPreviewOrdersItem.length > 0) {
+                for (let index = 0; index < theDataPreviewOrdersItem.length; index++) {
+                    Tr.appendChild(this.createTh(theDataPreviewOrdersItem[index]))
+                }
+                Tr.appendChild(this.changeQtyBtn(theDataPreviewOrdersItem.id))
+                Tr.appendChild(this.createRemoveItemBtn(theDataPreviewOrdersItem.id))
+            } else {
+                Tr.appendChild(this.createTh(theDataPreviewOrdersItem.id))
+                Tr.appendChild(this.createTh(theDataPreviewOrdersItem.item))
+                Tr.appendChild(this.createTh(theDataPreviewOrdersItem.price))
+                Tr.appendChild(this.createTh(theDataPreviewOrdersItem.quantity))
+                Tr.appendChild(this.createTh(theDataPreviewOrdersItem.type))
+                Tr.appendChild(this.changeQtyBtn(theDataPreviewOrdersItem.id))
+                Tr.appendChild(this.createRemoveItemBtn(theDataPreviewOrdersItem.id))
+            }
+
+            return Tr.innerHTML
+        },
+        createRemoveItemBtn(theItemId){
+            var removeItemBtn = document.createElement("button")
+            removeItemBtn.innerHTML = "Remove"
+            removeItemBtn.setAttribute("removeitemidbtn", `${theItemId}`)
+            removeItemBtn.setAttribute("class", "btn btn-danger")
+            var th = document.createElement("th");
+            th.appendChild(removeItemBtn)
+            return th
+        },
+        removeItemBtnOnClick(){
+            var selectAllRemoveItemBtn = $('button[removeitemidbtn]')
+            var ti = this
+            for (var i = 0; i < selectAllRemoveItemBtn.length; i++) {
+                selectAllRemoveItemBtn[i].addEventListener("click", function () {
+                    var currentBtn = this
+                    var getUniqueId = this.getAttribute("removeitemidbtn")
+                    
+                    ti.removeSelectedItemFromPreviewObj(getUniqueId,currentBtn)
+                })
+                
+            }
+        },
+        removeSelectedItemFromPreviewObj(getUniqueId,currentBtn){
+            var t = this
+            for (var key in t.previewObj) {
+                if(t.previewObj[key].id == getUniqueId){
+                    var theIndex = parseInt(key)
+                    t.previewObj.splice(theIndex,1)
+                    var theParentTh = currentBtn.parentElement.parentElement
+                    var theTableBody = theParentTh.parentElement
+                    theTableBody.removeChild(theParentTh)
+                    
+                    
+                }
+            }
+        },
+        changeBtnOnClick(){
+            var selectAllchangeBtnOnClick = $('button[delpcsiditem]')
+            var ti = this
+            for (var i = 0; i < selectAllchangeBtnOnClick.length; i++) {
+                selectAllchangeBtnOnClick[i].addEventListener("click", function () {
+                    var currentBtn = this
+                    var getUniqueId = this.getAttribute("delpcsiditem")
+                    ti.removeOneSelectedItemFromPreviewObj(getUniqueId,currentBtn)
+                })
+                
+            }
+        },
+        removeOneSelectedItemFromPreviewObj(getUniqueId,currentBtn){
+            var t = this
+            for (var key in t.previewObj) {
+                if(t.previewObj[key].quantity > 1 && t.previewObj[key].id == getUniqueId ){
+                    t.previewObj[key].quantity -= 1
+                    var theParentTh = currentBtn.parentElement.parentElement
+                    theParentTh.childNodes[3].innerHTML = `${t.previewObj[key].quantity}`
+                }
+            }
+        },
+        changeQtyBtn(theItemId){
+            var changeBtn = document.createElement("button")
+            changeBtn.innerHTML = "Del 1 pcs"
+            changeBtn.setAttribute("delpcsiditem", `${theItemId}`)
+            changeBtn.setAttribute("class", "btn btn-danger")
+            var th = document.createElement("th");
+            th.appendChild(changeBtn)
+            return th
+        },
+        addItemToPreviewObj(theDataMenu, getUniqueId) {
+            var newObj = { id: `${getUniqueId}`, item: `${theDataMenu[getUniqueId].item}`, price: `${theDataMenu[getUniqueId].price}`, type: `${theDataMenu[getUniqueId].type}`, quantity: 1 }
+            var checker = true;
+            var mem
+            for (var i = 0; i < this.previewObj.length; i++) {
+                if (newObj.id == this.previewObj[i].id) {
+                    checker = false;
+                    mem = i
+                }
+            }
+            if (!checker) {
+                this.previewObj[mem].quantity += 1
+            } else {
+                this.previewObj.push(newObj)
+            }
+
+        },
+        createTrItemWithData(theDataMenuItem, theKey) {
+            var Tr = document.createElement("tr")
+            Tr.appendChild(this.createTh(theKey))
+            for (var key in theDataMenuItem) {
+                Tr.appendChild(this.createTh(theDataMenuItem[key]))
+            }
+            Tr.appendChild(this.createAddButtonSelectFromMenu(theKey))
+            return Tr.innerHTML
+        },
+        fillTheTableSelectFromMenu(theDataMenu, bodySelectFromMenuTable) {
+            bodySelectFromMenuTable.innerHTML = ""
+            for (const key in theDataMenu) {
+                bodySelectFromMenuTable.innerHTML += this.createTrItemWithData(theDataMenu[key], key)
+            }
+        }
+    }
+
+    createNewOrder.init(bodySelectFromMenuTable, bodyPreviewOrdersTable, showAllTables, createNewTableBtn, createNewTableInput, submitTheOrder, showChosenTable)
+</script>

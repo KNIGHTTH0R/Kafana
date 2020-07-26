@@ -1,0 +1,147 @@
+<div class="wrap d-flex justify-content-center">
+    <div class="w-75">
+        <h1>Create new user</h1>
+        <p class="font-weight-bold">Name <span class="text-danger">*</span></p>
+        <input id="formNameInput" class="w-75" type="text" placeholder="Name">
+
+        <br><br>
+        <p class="font-weight-bold">Email <span class="text-danger">*</span></p>
+        <input id="formEmailInput" class="w-75" type="text" placeholder="Email">
+
+        <br><br>
+        <p class="font-weight-bold">Password <span class="text-danger">*</span></p>
+        <input id="formPasswordInput" class="w-75" type="text" placeholder="Password">
+
+        <br><br>
+        <p class="font-weight-bold">Type of user</p>
+        <select id="formPositionInput" class="w-25 text-danger" value="waiter">
+            <option value="waiter">Waiter</option>
+            <option value="manager">Manager</option>
+        </select>
+        <br><br><br>
+
+        <div id="formSubmit" class="btn btn-primary float-left btn-lg">Submit</div>
+    </div>
+</div>
+
+<script>
+    var formNameInput = document.getElementById("formNameInput");
+    var formEmailInput = document.getElementById("formEmailInput")
+    var formPasswordInput = document.getElementById("formPasswordInput");
+    var formPositionInput = document.getElementById("formPositionInput");
+    var formSubmit = document.getElementById("formSubmit");
+
+    var CreateNewUser = {
+        init(formNameInput, formEmailInput, formPasswordInput, formPositionInput, formSubmit) {
+            var t = this;
+            firebase.database().ref("Users").on("value", function (data) {
+                //ovdeka sve izvrsvi
+                var theData = data.val();
+                t.formSubmitEventClick(formNameInput, formEmailInput, formPasswordInput, formPositionInput, formSubmit, theData)
+                
+
+            }, function (err) {
+                console.log(err)
+            })
+        },
+        formSubmitEventClick(formNameInput, formEmailInput, formPasswordInput, formPositionInput, formSubmit, theData) {
+            var t = this
+            var boolZapisano = true;
+            var TheNewUser = t.MakeNewUser(formNameInput, formEmailInput, formPasswordInput, formPositionInput, formSubmit)
+            formSubmit.onclick = function writeData() {
+                
+                if (!t.checkIfTheInputsEmpty(formNameInput, formEmailInput, formPasswordInput, formPositionInput)) {
+                    alert("all fields are required!")
+                } else if (!t.checkEmailInput(formEmailInput)) {
+                    alert("Please enter a valid email address.");
+                } else if (!t.checkEmailIsUnique(formEmailInput, theData)) {
+                    alert("There is another user with same email, the email should be unique");
+                    formEmailInput.value = "";
+                    formEmailInput.focus();
+
+                } else {
+                    var newId = t.findUniqueId(theData)
+                    firebase.database().ref(`Users/${newId}`).set({
+                        Email: formEmailInput.value,
+                        Name: formNameInput.value,
+                        Password: formPasswordInput.value,
+                        Position: formPositionInput.value
+                    }).catch(function (err) {
+                        console.log(err);
+                        boolZapisano = false;
+
+
+                    });
+                    if (!boolZapisano) {
+                        alert("Neuspesno kreiranje nov user")
+                    } else {
+                        alert("Uspesno kreiranje nov user")
+                    }
+                }
+
+
+            }
+
+        },
+        checkEmailIsUnique(formEmailInput, theData) {
+            var bool = true
+            for (var key in theData) {
+                if (formEmailInput.value ==theData[key].Email) {
+                    bool = false
+                }
+            }
+            return bool
+        },
+        findUniqueId(theData){
+            var uniqueId = 0
+            var idsArr = [];
+            for(var prop in theData){
+                idsArr.push(parseInt(prop))
+            }
+            var sortedIds = idsArr.sort();
+            for (let i = 0; i < sortedIds.length; i++) {
+                if(uniqueId == sortedIds[i]){
+                    uniqueId++
+                }
+            }
+            return uniqueId
+            
+        },
+        checkEmailInput(formEmailInput) {
+            var re = /^(([^<>()\[\]\.,;:\s@\"]+(\.[^<>()\[\]\.,;:\s@\"]+)*)|(\".+\"))@(([^<>()[\]\.,;:\s@\"]+\.)+[^<>()[\]\.,;:\s@\"]{2,})$/i;
+            if (!re.test(String(formEmailInput.value).toLowerCase())) {
+                formEmailInput.value = "";
+                formEmailInput.focus();
+                return false;
+            }
+            return true
+        },
+        checkIfTheInputsEmpty(formNameInput, formEmailInput, formPasswordInput, formPositionInput) {
+            if (!formNameInput.value || !formEmailInput.value || !formPasswordInput.value || !formPositionInput) {
+                this.makeAllInputsEmpty(formNameInput, formEmailInput, formPasswordInput);
+                formNameInput.focus();
+                return false
+            }
+            return true
+        },
+        makeAllInputsEmpty(formNameInput, formEmailInput, formPasswordInput) {
+            formNameInput.value = "";
+            formEmailInput.value = "";
+            formPasswordInput.value = "";
+        },
+        MakeNewUser(formNameInput, formEmailInput, formPasswordInput, formPositionInput, formSubmit) {
+            var NewUser = {
+                Email: formEmailInput.value,
+                Name: formNameInput.value,
+                Password: formPasswordInput.value,
+                Position: formPositionInput.value
+            }
+            return NewUser;
+        }
+    }
+
+    CreateNewUser.init(formNameInput, formEmailInput, formPasswordInput, formPositionInput, formSubmit);
+
+
+
+</script>

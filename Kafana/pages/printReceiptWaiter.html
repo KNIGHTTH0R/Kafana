@@ -1,0 +1,184 @@
+<h1>Print receipt</h1>
+<br><br>
+<h3 style="text-align: center;">First chose table</h3>
+<br>
+<div class="d-flex justify-content-center">
+    <div id="allTables" class="btn" data-toggle="buttons-radio">
+        <div id="showAllTablesForReceipt">
+            <button style="margin: 3px;" class="btn btn-large btn-primary" data-toggle="allTables">1</button>
+            <button style="margin: 3px;" class="btn btn-large btn-primary" data-toggle="allTables">2</button>
+        </div>
+    </div>
+</div>
+<br>
+<h3>Preview items on table <span class="showTheChosenTable text-danger"></span></h3>
+<table class="table table-striped table-hover table-dark">
+    <thead>
+        <tr class="bg-primary">
+            <th>Id</th>
+            <th>Item</th>
+            <th>Type</th>
+            <th>Price</th>
+            <th>Quantity</th>
+            <th>Total</th>
+        </tr>
+    </thead>
+    <tbody id="bodyPreviewReceiptTable">
+    </tbody>
+    <tfoot>
+        <tr class="bg-danger">
+            <th colspan="5">Total for payment</th>
+            <th id="showTheTotalReceipt"></th>
+        </tr>
+    </tfoot>
+</table>
+<div class="d-flex justify-content-center">
+    <button id="printTheReceiptBtn" class="btn btn-large btn-danger w-75" chosentableidforreceipt="">Print the receipt
+        for table: <span class="showTheChosenTable text-white"></span></button>
+</div>
+
+<script>
+    var showAllTablesForReceipt = document.getElementById("showAllTablesForReceipt")
+    var showTheChosenTable = document.querySelectorAll(".showTheChosenTable")
+    var printTheReceiptBtn = document.getElementById("printTheReceiptBtn")
+    var bodyPreviewReceiptTable = document.getElementById("bodyPreviewReceiptTable")
+    var showTheTotalReceipt = document.getElementById("showTheTotalReceipt")
+    var printTheReceiptObj = {
+        currentTable: [],
+        init(showAllTablesForReceipt, printTheReceiptBtn, showTheChosenTable, bodyPreviewReceiptTable, showTheTotalReceipt) {
+            var t = this;
+            var theDataMenu;
+            var theDataTables;
+
+            firebase.database().ref("tables").on("value", function (data) {
+                //ovdeka sve izvrsvi
+                theDataTables = data.val();
+            }, function (err) {
+                console.log(err)
+            })
+
+            firebase.database().ref("menu").on("value", function (data) {
+                //ovdeka sve izvrsvi
+                theDataMenu = data.val();
+                t.fillTheShowAllTables(theDataTables, showAllTablesForReceipt)
+                t.SelectTableOnClick(printTheReceiptBtn, showTheChosenTable, theDataTables, theDataMenu, bodyPreviewReceiptTable, showTheTotalReceipt)
+                t.printTheReceiptBtnOnClick(printTheReceiptBtn)
+            }, function (err) {
+                console.log(err)
+            })
+        },
+        printTheReceiptBtnOnClick(printTheReceiptBtn) {
+            printTheReceiptBtn.onclick = function () {
+                var chosenTable = printTheReceiptBtn.getAttribute("chosentableidforreceipt")
+                if (chosenTable == "") {
+                    alert("First you need to select table!")
+                } else {
+                    firebase.database().ref(`tables/${chosenTable}`).remove()
+                        .then(function () {
+                            alert(`The receipt for the table with id ${chosenTable} is successfully printed`)
+                            location.reload();
+                        })
+                        .catch(function (error) {
+                            console.log("Remove failed: " + error.message)
+                            alert(`The print of the receipt for the table with id ${chosenTable} failed, try again!`)
+                        });
+                }
+            }
+        },
+        SelectTableOnClick(printTheReceiptBtn, showTheChosenTable, theDataTables, theDataMenu, bodyPreviewReceiptTable, showTheTotalReceipt) {
+            var selectAllSelectTableBtn = $('button[idofthetable]')
+            var t = this
+            for (var i = 0; i < selectAllSelectTableBtn.length; i++) {
+                selectAllSelectTableBtn[i].addEventListener("click", function () {
+                    var getUniqueId = this.getAttribute("idofthetable")
+                    printTheReceiptBtn.setAttribute("chosentableidforreceipt", `${getUniqueId}`)
+                    t.fillInnerHtmlShowTheChosenTable(showTheChosenTable, getUniqueId)
+                    t.fillCurrentTableObj(getUniqueId, theDataTables, theDataMenu)
+                    t.fillBodyPreviewReceiptTable(bodyPreviewReceiptTable)
+                    t.calculateAndShowTotalForPayment(showTheTotalReceipt)
+                    //presmetaj total
+                })
+            }
+        },
+        calculateAndShowTotalForPayment(showTheTotalReceipt) {
+            var memTotal = 0
+            showTheTotalReceipt.innerHTML = ""
+            for (var key in this.currentTable) {
+                memTotal += this.currentTable[key].total
+            }
+            showTheTotalReceipt.innerHTML = memTotal
+        },
+        fillBodyPreviewReceiptTable(bodyPreviewReceiptTable) {
+            bodyPreviewReceiptTable.innerHTML = ""
+            for (var key in this.currentTable) {
+                bodyPreviewReceiptTable.innerHTML += this.createTr(this.currentTable[key])
+            }
+        },
+        createTh(input) {
+            var th = document.createElement("th");
+            th.innerHTML = input;
+            return th
+        },
+        createTr(theInput) {
+            var Tr = document.createElement("tr")
+            Tr.appendChild(this.createTh(theInput.id))
+            Tr.appendChild(this.createTh(theInput.item))
+            Tr.appendChild(this.createTh(theInput.type))
+            Tr.appendChild(this.createTh(theInput.price))
+            Tr.appendChild(this.createTh(theInput.quantity))
+            Tr.appendChild(this.createTh(theInput.total))
+            return Tr.innerHTML
+        },
+        fillCurrentTableObj(getUniqueId, theDataTables, theDataMenu) {
+            this.currentTable = []
+            for (var key in theDataTables) {
+                if (key == getUniqueId) {
+                    for (var keyItems in theDataTables[key].items) {
+                        var theItemId = keyItems
+                        var theItemQuantity = theDataTables[key].items[keyItems]
+                        var theItem
+                        var theItemType
+                        var thePrice
+                        var theTotalByItem
+                        for (var keyMenu in theDataMenu) {
+                            if (keyMenu == theItemId) {
+                                theItem = theDataMenu[keyMenu].item
+                                theItemType = theDataMenu[keyMenu].type
+                                thePrice = parseInt(theDataMenu[keyMenu].price)
+                                theTotalByItem = parseInt(thePrice) * parseInt(theItemQuantity)
+                            }
+                        }
+                        this.currentTable.push({ id: theItemId, item: theItem, type: theItemType, price: thePrice, quantity: theItemQuantity, total: theTotalByItem })
+                    }
+
+                }
+            }
+            
+        },
+        fillInnerHtmlShowTheChosenTable(showTheChosenTable, theId) {
+            for (var i = 0; i < showTheChosenTable.length; i++) {
+                showTheChosenTable[i].innerHTML = `${theId}`
+            }
+        },
+        fillTheShowAllTables(theDataTables, showAllTablesForReceipt) {
+            showAllTablesForReceipt.innerHTML = ""
+            var userFromLocalSt = JSON.parse(localStorage.getItem("User"))
+            for (var key in theDataTables) {
+                if (theDataTables[key].waiterEmail == userFromLocalSt.Email) {
+                    showAllTablesForReceipt.appendChild(this.createButtonSelectTable(key))
+                }
+            }
+        },
+        createButtonSelectTable(idTable) {
+            var btn = document.createElement("button")
+            btn.style.margin = "3px";
+            btn.innerHTML = idTable
+            btn.setAttribute("class", "btn btn-large btn-primary");
+            btn.setAttribute("data-toggle", "tables")
+            btn.setAttribute("idofthetable", idTable)
+            return btn
+        },
+    }
+
+    printTheReceiptObj.init(showAllTablesForReceipt, printTheReceiptBtn, showTheChosenTable, bodyPreviewReceiptTable, showTheTotalReceipt)
+</script>

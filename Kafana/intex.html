@@ -1,0 +1,64 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <script src="/scripts/indexScripts.js"></script>
+    <link rel="stylesheet" href="/styles/indexStyle.css">
+    <!-- Insert these scripts at the bottom of the HTML, but before you use any Firebase services -->
+
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-app.js"></script>
+
+    <!-- If you enabled Analytics in your project, add the Firebase SDK for Analytics -->
+    <script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-analytics.js"></script>
+
+    <!-- Add Firebase products that you want to use -->
+    <script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/7.14.1/firebase-database.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css">
+</head>
+
+<body>
+
+    
+    <button id="seeMenuBtn" class="btn">Menu</button>
+
+    <!-- Trigger/Open The Modal -->
+    <button id="myBtn" class="btn">Staff</button>
+
+    <!-- The Modal -->
+    <div id="myModal" class="modal">
+
+        <!-- Modal content -->
+        <div class="modal-content">
+            <span id="theClose" class="close">&#128281; If you are not staff go back</span>
+            <input id="emailInput" type="email" placeholder="Insert your email">
+            <input id="passwordInput" type="password" placeholder="Insert your password">
+            <button id = "singInBtn" type="button" class="btn btn-primary btn-lg">Sing in</button>
+        </div>
+
+    </div>
+
+    
+    <script>
+
+        var modal = document.getElementById("myModal");
+        var btn = document.getElementById("myBtn");
+        var span = document.getElementById("theClose");
+        var emailInput = document.getElementById("emailInput");
+        var passwordInput = document.getElementById("passwordInput");
+        var singInBtn =document.getElementById("singInBtn");
+        var seeMenuBtn = document.getElementById("seeMenuBtn");
+
+        
+        configTheData.init(modal,btn,span,emailInput,passwordInput,singInBtn,seeMenuBtn)
+
+    </script>
+</body>
+
+</html>

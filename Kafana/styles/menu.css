@@ -1,0 +1,133 @@
+body {
+    background-image: url(/img/bg.jpg);
+    font-style: italic;
+}
+
+#wrap {
+    position: relative;
+    margin: 0px !important;
+    padding: 0px !important;
+}
+
+#mainH1 {
+    text-align: center;
+    margin: 30px;
+}
+
+#mainPart, #mainH1 {
+    color: whitesmoke;
+}
+
+#goBackToHomePage {
+    color: whitesmoke;
+    position: sticky;
+    top: 0;
+}
+
+#appetizersBtn {
+    padding: 0px 0px 0px 0px !important;
+    text-align: center;
+    font-size: larger;
+    font-style: italic;
+    margin: 0px;
+    margin-right: 10px;
+    width: 160px;
+    height: 40px;
+    z-index: 15;
+    border-radius: 5px 5px 5px 5px;
+    -moz-transform: rotate(-75deg);
+    -ms-transform: rotate(-75deg);
+    -o-transform: rotate(-75deg);
+    -webkit-transform: rotate(-75deg);
+    transform-origin: bottom right;
+    position: absolute;
+    top: 5px;
+    right: 10px;
+}
+
+#appetizersBtn p {
+    color: #fff;
+    display: inline-block;
+    line-height: 40px;
+}
+
+#mainCourseBtn {
+    padding: 0px 0px 0px 0px;
+    text-align: center;
+    font-size: larger;
+    font-style: italic;
+    margin: 0px;
+    margin-right: 10px;
+    width: 160px;
+    height: 40px;
+    z-index: 15;
+    border-radius: 5px 5px 5px 5px;
+    -moz-transform: rotate(-75deg);
+    -ms-transform: rotate(-75deg);
+    -o-transform: rotate(-75deg);
+    -webkit-transform: rotate(-75deg);
+    transform-origin: bottom right;
+    position: absolute;
+    top: 200px;
+    right: 10px;
+}
+
+#mainCourseBtn p {
+    color: #fff;
+    display: inline-block;
+    line-height: 40px;
+}
+
+#dessertsBtn {
+    padding: 0px 0px 0px 0px;
+    text-align: center;
+    font-size: larger;
+    font-style: italic;
+    margin: 0px;
+    margin-right: 10px;
+    width: 160px;
+    height: 40px;
+    z-index: 15;
+    border-radius: 5px 5px 5px 5px;
+    -moz-transform: rotate(-75deg);
+    -ms-transform: rotate(-75deg);
+    -o-transform: rotate(-75deg);
+    -webkit-transform: rotate(-75deg);
+    transform-origin: bottom right;
+    position: absolute;
+    top: 400px;
+    right: 10px;
+}
+
+#dessertsBtn p {
+    color: #fff;
+    display: inline-block;
+    line-height: 40px;
+}
+
+#drinksBtn {
+    padding: 0px 0px 0px 0px;
+    text-align: center;
+    font-size: larger;
+    font-style: italic;
+    margin: 0px;
+    margin-right: 10px;
+    width: 160px;
+    height: 40px;
+    z-index: 15;
+    border-radius: 5px 5px 5px 5px;
+    -moz-transform: rotate(-75deg);
+    -ms-transform: rotate(-75deg);
+    -o-transform: rotate(-75deg);
+    -webkit-transform: rotate(-75deg);
+    transform-origin: bottom right;
+    position: absolute;
+    top: 600px;
+    right: 10px;
+}
+
+#drinksBtn p {
+    color: #fff;
+    display: inline-block;
+    line-height: 40px;
+}

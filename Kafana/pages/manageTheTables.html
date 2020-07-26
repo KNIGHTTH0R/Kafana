@@ -1,0 +1,240 @@
+<h1>Manage the tables</h1>
+<br><br>
+<h3 style="text-align: center;">First chose table</h3>
+<br>
+<div class="d-flex justify-content-center">
+    <div id="allTablesManage" class="btn" data-toggle="buttons-radio">
+        <div id="showAllTablesToManage">
+            <button style="margin: 3px;" class="btn btn-large btn-primary" data-toggle="allTablesManage">1</button>
+            <button style="margin: 3px;" class="btn btn-large btn-primary" data-toggle="allTablesManage">2</button>
+        </div>
+    </div>
+</div>
+<br><br>
+<h3 style="text-align: center;">Manage items on table <span class="showTheChosenTableToManage text-danger"></span></h3>
+<table class="table table-striped table-hover table-dark">
+    <thead>
+        <tr class="bg-primary">
+            <th>Item Id</th>
+            <th>Quantity</th>
+            <th>Del 1 pcs</th>
+            <th>Remove</th>
+        </tr>
+    </thead>
+    <tbody id="bodyPreviewManageTable">
+    </tbody>
+</table>
+<div class="d-flex justify-content-center">
+    <button id="removeTheTableBtn" class="btn btn-large btn-danger w-75" chosentableidtoremove="">Remove the table with
+        id: <span class="showTheChosenTableToManage text-white"></span></button>
+</div>
+
+<script>
+    var showAllTablesToManage = document.getElementById("showAllTablesToManage")
+    var bodyPreviewManageTable = document.getElementById("bodyPreviewManageTable")
+    var showTheChosenTableToManage = document.querySelectorAll(".showTheChosenTableToManage")
+    var removeTheTableBtn = document.getElementById("removeTheTableBtn")
+
+    var manageTheTablesObj = {
+        init(showAllTablesToManage, bodyPreviewManageTable, showTheChosenTableToManage, removeTheTableBtn) {
+            var t = this;
+            firebase.database().ref("tables").on("value", function (data) {
+                //ovdeka sve izvrsvi
+                theDataTables = data.val();
+                
+                t.fillShowAllTablesToManage(theDataTables, showAllTablesToManage)
+                t.SelectTableOnClick(theDataTables, bodyPreviewManageTable, showTheChosenTableToManage, removeTheTableBtn)
+                t.removeTheTableBtnOnClick(removeTheTableBtn, bodyPreviewManageTable, showTheChosenTableToManage)
+            }, function (err) {
+                console.log(err)
+            })
+        },
+        SelectTableOnClick(theDataTables, bodyPreviewManageTable, showTheChosenTableToManage, removeTheTableBtn) {
+            var selectAllSelectTableBtn = $('button[theidofthetable]')
+            var t = this
+            for (var i = 0; i < selectAllSelectTableBtn.length; i++) {
+                selectAllSelectTableBtn[i].addEventListener("click", function () {
+                    var getUniqueId = this.getAttribute("theidofthetable")
+                    
+                    t.fillShowChosenTableToManage(showTheChosenTableToManage, getUniqueId)
+                    t.fillBodyPreviewManageTable(getUniqueId, theDataTables, bodyPreviewManageTable)
+                    t.removeItemBtnOnClick(getUniqueId, bodyPreviewManageTable, removeTheTableBtn,showTheChosenTableToManage)
+                    t.theDel1PcsBtnOnCLick(getUniqueId, theDataTables)
+                    removeTheTableBtn.setAttribute("chosentableidtoremove", `${getUniqueId}`)
+
+                })
+            }
+        },
+        removeTheTableBtnOnClick(removeTheTableBtn, bodyPreviewManageTable, showTheChosenTableToManage) {
+            var t = this
+            removeTheTableBtn.onclick = function () {
+                var theChosenTableId = removeTheTableBtn.getAttribute("chosentableidtoremove")
+                if (theChosenTableId == "") {
+                    alert("Please first chose table that you want to remove")
+                } else {
+                    firebase.database().ref(`tables/${parseInt(theChosenTableId)}`).remove()
+                        .then(function () {
+                            alert(`The table with id ${theChosenTableId} is successfully removed`)
+                            bodyPreviewManageTable.innerHTML = ""
+                            removeTheTableBtn.setAttribute("chosentableidtoremove", "")
+                            t.fillShowChosenTableToManage(showTheChosenTableToManage, "")
+
+                        })
+                        .catch(function (error) {
+                            console.log("Remove failed: " + error.message)
+                            alert(`The remove of the table with id ${theChosenTableId} failed, try again!`)
+                        });
+                }
+            }
+        },
+        fillShowChosenTableToManage(showTheChosenTableToManage, getUniqueId) {
+            for (var i = 0; i < showTheChosenTableToManage.length; i++) {
+                showTheChosenTableToManage[i].innerHTML = `${getUniqueId}`
+            }
+
+        },
+        theDel1PcsBtnOnCLick(getUniqueId, theDataTables) {
+            var selectAllDel1PcsBtn = $('button[del1pcsBtnId]')
+            var t = this
+            //DA NAPRAVI PROVERKA DALI VO KOL E SAMO EDEN TOGAS DA NE MOZIT
+            for (var i = 0; i < selectAllDel1PcsBtn.length; i++) {
+                selectAllDel1PcsBtn[i].addEventListener("click", function () {
+                    var theUniqueIdItemRem = this.getAttribute("del1pcsBtnId")
+                    var theCurrBtn = this
+                    t.delete1PcsChosenItemChosenTable(getUniqueId, theUniqueIdItemRem, theCurrBtn, theDataTables)
+
+                })
+            }
+        },
+        delete1PcsChosenItemChosenTable(getUniqueId, theUniqueIdItemRem, theCurrBtn, theDataTables) {
+            for (var keyDT in theDataTables) {
+                if (keyDT == getUniqueId) {
+                    for (var keyIT in theDataTables[keyDT].items) {
+                        if (theUniqueIdItemRem == keyIT) {
+                            var curItemQt = theDataTables[keyDT].items[keyIT]
+                            
+                            if (curItemQt > 1) {
+                                var newCurrItemQt = curItemQt - 1
+                                this.changeQtOnChosenTableItem(getUniqueId, theUniqueIdItemRem, newCurrItemQt, theCurrBtn)
+                            }
+
+                        }
+                    }
+                }
+            }
+        },
+        changeQtOnChosenTableItem(whichTable, whichItem, newQt, theCurrBtn) {
+            var t = this
+            firebase.database().ref(`tables/${parseInt(whichTable)}/items/${parseInt(whichItem)}`).set(parseInt(newQt))
+                .then(function () {
+                    console.log(`Succesfully changed quantity for item ${whichItem} on table ${whichTable}`)
+                    t.changeQtInBodyPreviewManageTable(theCurrBtn)
+                })
+                .catch(function (error) {
+                    console.log("Remove failed: " + error.message)
+                    alert(`Deleting 1 pcs failed`)
+                });
+        },
+        changeQtInBodyPreviewManageTable(theCurrBtn) {
+            var qtNode = theCurrBtn.parentElement.parentElement
+            var curQt = qtNode.childNodes[1]
+            if (parseInt(curQt.innerHTML) > 1) {
+                curQt.innerHTML = `${parseInt(curQt.innerHTML) - 1}`
+            }
+
+        },
+        removeItemBtnOnClick(getUniqueId, bodyPreviewManageTable,removeTheTableBtn,showTheChosenTableToManage) {
+            var selectAllRemoveItemBtn = $('button[removeitemid]')
+            var t = this
+            for (var i = 0; i < selectAllRemoveItemBtn.length; i++) {
+                selectAllRemoveItemBtn[i].addEventListener("click", function () {
+                    var theUniqueIdItemRem = this.getAttribute("removeitemid")
+                    var theCurrBtn = this
+                    
+                        if (theCurrBtn.parentElement.parentElement.parentElement.childNodes.length == 1) {
+                            firebase.database().ref(`tables/${parseInt(getUniqueId)}`).remove()
+                                .then(function () {
+                                    alert(`The table with id ${getUniqueId} is successfully removed`)
+                                    bodyPreviewManageTable.innerHTML = ""
+                                    removeTheTableBtn.setAttribute("chosentableidtoremove", "")
+                                    t.fillShowChosenTableToManage(showTheChosenTableToManage, "")
+
+                                })
+                                .catch(function (error) {
+                                    console.log("Remove failed: " + error.message)
+                                    alert(`The remove of the table with id ${getUniqueId} failed, try again!`)
+                                });
+                        } else {
+                            firebase.database().ref(`tables/${parseInt(getUniqueId)}/items/${parseInt(theUniqueIdItemRem)}`).remove()
+                                .then(function () {
+                                    console.log(`Succesfully removed item with id ${theUniqueIdItemRem} on table ${getUniqueId}`)
+                                    bodyPreviewManageTable.removeChild(theCurrBtn.parentElement.parentElement)
+                                })
+                                .catch(function (error) {
+                                    console.log("Remove failed: " + error.message)
+                                    alert(`Removing of item with id failed`)
+                                });
+                        }
+                    
+
+                })
+            }
+        },
+        fillBodyPreviewManageTable(getUniqueId, theDataTables, bodyPreviewManageTable) {
+            bodyPreviewManageTable.innerHTML = ""
+            var t = this
+            for (var key in theDataTables) {
+                if (key == getUniqueId) {
+                    for (const keyItems in theDataTables[key].items) {
+                        var Tr = document.createElement("tr")
+                        Tr.appendChild(t.createTh(keyItems))
+                        Tr.appendChild(t.createTh(theDataTables[key].items[keyItems]))
+                        Tr.appendChild(t.createDel1PcsBtn(keyItems))
+                        Tr.appendChild(t.createRemoveItemBtn(keyItems))
+                        bodyPreviewManageTable.appendChild(Tr)
+                    }
+                }
+            }
+        }, createRemoveItemBtn(keyItems) {
+            var removeItemBtn = document.createElement("button")
+            removeItemBtn.innerHTML = "Remove item"
+            removeItemBtn.setAttribute("removeitemid", `${keyItems}`)
+            removeItemBtn.setAttribute("class", "btn btn-danger")
+            var th = document.createElement("th");
+            th.appendChild(removeItemBtn)
+            return th
+        },
+        createDel1PcsBtn(keyItems) {
+            var theDel1PcsBtn = document.createElement("button")
+            theDel1PcsBtn.innerHTML = "Del 1 pcs"
+            theDel1PcsBtn.setAttribute("del1pcsBtnId", `${keyItems}`)
+            theDel1PcsBtn.setAttribute("class", "btn btn-danger")
+            var th = document.createElement("th");
+            th.appendChild(theDel1PcsBtn)
+            return th
+        },
+        createTh(input) {
+            var th = document.createElement("th");
+            th.innerHTML = input;
+            return th
+        },
+        fillShowAllTablesToManage(theDataTables, showAllTablesToManage) {
+            showAllTablesToManage.innerHTML = ""
+            for (var key in theDataTables) {
+                showAllTablesToManage.appendChild(this.createButtonSelectTable(key))
+            }
+        },
+        createButtonSelectTable(idTable) {
+            var btn = document.createElement("button")
+            btn.style.margin = "3px";
+            btn.innerHTML = idTable
+            btn.setAttribute("class", "btn btn-large btn-primary");
+            btn.setAttribute("data-toggle", "tables")
+            btn.setAttribute("theidofthetable", idTable)
+            return btn
+        }
+
+    }
+
+    manageTheTablesObj.init(showAllTablesToManage, bodyPreviewManageTable, showTheChosenTableToManage, removeTheTableBtn)
+</script>
